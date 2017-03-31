@@ -1,0 +1,27 @@
+import by.intexsoft.ufm.model.Client
+import by.intexsoft.ufm.model.Subscriber
+
+global  org.slf4j.Logger logger
+global  by.intexsoft.ufm.service.OutputGeneratorService generator
+
+rule "Common client"
+salience 1
+when
+    $client:Client()
+    $item: Subscriber() from $client.subscribers
+then
+    logger.info("Add subscriber " + $item.id + " to precessing");
+    insert($item);
+end
+
+rule "Common susbs"
+salience 0
+when
+    $client:Client()
+    $total : Number() from accumulate ( Subscriber($client == client, $spent : spent), sum( $spent ) )
+    $count : Long() from accumulate ( $s: Subscriber($client == client), count($s) )
+then
+    logger.info(" Processing all subs for client: " + $client.clientId);
+    generator.generate($client.clientId, $total, $count > 100);
+end
+
